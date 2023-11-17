@@ -2,6 +2,11 @@ import { useRef, useState } from "react";
 
 function App() {
   const [usedFiles, setUsedFiles] = useState([]);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(
+    chatHistory?.length > 0 && chatHistory[0]
+  );
+
   const fileInputRef = useRef(null);
 
   const handleButtonClick = () => {
@@ -14,6 +19,52 @@ function App() {
     const selectedFile = event.target.files[0];
     setUsedFiles([...usedFiles, selectedFile]);
   };
+
+  const handleCreateNewChat = () => {
+    if (usedFiles?.length > 0) {
+      setChatHistory([
+        ...chatHistory,
+        {
+          id: chatHistory?.length + 1,
+          messeges: [],
+        },
+      ]);
+      setSelectedChat({
+        id: chatHistory?.length + 1,
+        messeges: [],
+      });
+    } else {
+      alert("Please Select a file");
+    }
+  };
+  const [messege, setMessege] = useState("");
+  const onhandleSendMessege = (e) => {
+    e.preventDefault();
+    const updateSelectedChat = {
+      ...selectedChat,
+      messeges: [
+        ...selectedChat.messeges,
+        {
+          user: messege,
+          chatbot: "",
+        },
+      ],
+    };
+    setSelectedChat(updateSelectedChat);
+
+    const updatedChatHistory = chatHistory.map((chat) => {
+      if (chat.id === selectedChat.id) {
+        return updateSelectedChat;
+      } else {
+        return chat;
+      }
+    });
+    setChatHistory(updatedChatHistory);
+    setMessege("");
+  };
+
+  console.log(chatHistory);
+
   return (
     <>
       <div className="flex h-screen antialiased text-gray-800">
@@ -120,7 +171,10 @@ function App() {
           </div>
           <div className="flex flex-col py-8 pl-6 pr-2 w-64 bg-white flex-shrink-0">
             <div className="flex flex-row items-center justify-center h-12 w-full">
-              <div className="font-bold text-xl border-2 px-7 py-1 rounded cursor-pointer">
+              <div
+                onClick={handleCreateNewChat}
+                className="font-bold text-xl border-2 px-7 py-1 rounded cursor-pointer"
+              >
                 Start New Chat
               </div>
             </div>
@@ -128,25 +182,39 @@ function App() {
               <div className="flex flex-row items-center justify-between text-xs">
                 <span className="font-bold">History</span>
                 <span className="flex items-center justify-center bg-gray-300 h-4 w-4 rounded-full">
-                  4
+                  {chatHistory?.length}
                 </span>
               </div>
               <div className="flex flex-col space-y-1 mt-4 -mx-2 h-full overflow-y-auto">
-                <button className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2">
-                  <div className="text-sm font-semibold">Henry Boyd</div>
-                </button>
-                <button className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2">
-                  <div className="text-sm font-semibold">Marta Curtis</div>
-                </button>
-                <button className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2">
-                  <div className="text-sm font-semibold">Philip Tucker</div>
-                </button>
-                <button className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2">
-                  <div className="text-sm font-semibold">Christine Reid</div>
-                </button>
-                <button className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2">
-                  <div className="text-sm font-semibold">Jerry Guzman</div>
-                </button>
+                {chatHistory?.map((res, i) => (
+                  <>
+                    {res?.messeges?.length > 0 ? (
+                      <button
+                        key={i}
+                        className={`flex flex-row items-center ${
+                          res?.id == selectedChat.id ? "bg-gray-50" : ""
+                        } hover:bg-gray-100 rounded-xl p-2`}
+                        onClick={() => setSelectedChat(res)}
+                      >
+                        <div className="text-sm font-semibold">
+                          {res?.messeges[0]?.user == undefined
+                            ? "New Messege"
+                            : res?.messeges[0]?.user}
+                        </div>
+                      </button>
+                    ) : (
+                      <button
+                        key={i}
+                        className={`flex flex-row items-center ${
+                          res?.id == selectedChat.id ? "bg-gray-50" : ""
+                        } hover:bg-gray-100 rounded-xl p-2`}
+                        onClick={() => setSelectedChat(res)}
+                      >
+                        <div className="text-sm font-semibold">New Messege</div>
+                      </button>
+                    )}
+                  </>
+                ))}
               </div>
             </div>
           </div>
@@ -155,26 +223,29 @@ function App() {
               <div className="flex flex-col h-full overflow-x-auto mb-4">
                 <div className="flex flex-col h-full">
                   <div className="grid grid-cols-12 gap-y-2">
-                    {chatdata?.map((res, i) => (
+                    {selectedChat?.messeges?.map((res, i) => (
                       <>
-                        <div
-                          key={i}
-                          className="col-start-6 col-end-13 p-3 rounded-lg"
-                        >
-                          <div className="flex items-center justify-start flex-row-reverse">
-                            <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
-                              A
-                            </div>
-                            <div className="relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl">
-                              <div>{res?.user}</div>
+                        {res?.user !== undefined && (
+                          <div
+                            key={i}
+                            className="col-start-6 col-end-13 p-3 rounded-lg"
+                          >
+                            <div className="flex items-center justify-start flex-row-reverse">
+                              <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
+                                Me
+                              </div>
+                              <div className="relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl">
+                                <div>{res?.user}</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        {res?.chatbot !== "" && (
+                        )}
+
+                        {res?.chatbot !== undefined && (
                           <div className="col-start-1 col-end-8 p-3 rounded-lg">
                             <div className="flex flex-row items-center">
                               <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
-                                A
+                                Bot
                               </div>
                               <div className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl">
                                 <div>{res?.chatbot}</div>
@@ -187,41 +258,44 @@ function App() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-row items-center h-16 rounded-xl bg-white w-full px-4">
-                <div className="flex-grow">
-                  <div className="relative w-full">
-                    <input
-                      disabled={usedFiles?.length == 0}
-                      type="text"
-                      className="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10"
-                    />
+              <form onSubmit={onhandleSendMessege}>
+                <div className="flex flex-row items-center h-16 rounded-xl bg-white w-full px-4">
+                  <div className="flex-grow">
+                    <div className="relative w-full">
+                      <input
+                        type="text"
+                        value={messege}
+                        onChange={(e) => setMessege(e.target.value)}
+                        className="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <button
+                      type="submit"
+                      className="flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 rounded-xl text-white px-4 py-1 flex-shrink-0"
+                    >
+                      <span>Send</span>
+                      <span className="ml-2">
+                        <svg
+                          className="w-4 h-4 transform rotate-45 -mt-px"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                          ></path>
+                        </svg>
+                      </span>
+                    </button>
                   </div>
                 </div>
-                <div className="ml-4">
-                  <button
-                    disabled={usedFiles?.length == 0}
-                    className="flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 rounded-xl text-white px-4 py-1 flex-shrink-0"
-                  >
-                    <span>Send</span>
-                    <span className="ml-2">
-                      <svg
-                        className="w-4 h-4 transform rotate-45 -mt-px"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                        ></path>
-                      </svg>
-                    </span>
-                  </button>
-                </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>
@@ -231,38 +305,3 @@ function App() {
 }
 
 export default App;
-
-const chatdata = [
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-  {
-    user: "Hey How are you today?",
-    chatbot: "I m ok what about you?",
-  },
-];
