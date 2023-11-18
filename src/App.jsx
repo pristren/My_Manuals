@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useRef, useState } from "react";
 
 function App() {
@@ -21,21 +22,21 @@ function App() {
   };
 
   const handleCreateNewChat = () => {
-    if (usedFiles?.length > 0) {
-      setChatHistory([
-        ...chatHistory,
-        {
-          id: chatHistory?.length + 1,
-          messeges: [],
-        },
-      ]);
-      setSelectedChat({
+    // if (usedFiles?.length > 0) {
+    setChatHistory([
+      ...chatHistory,
+      {
         id: chatHistory?.length + 1,
         messeges: [],
-      });
-    } else {
-      alert("Please Select a file");
-    }
+      },
+    ]);
+    setSelectedChat({
+      id: chatHistory?.length + 1,
+      messeges: [],
+    });
+    // } else {
+    //   alert("Please Select a file");
+    // }
   };
   const [messege, setMessege] = useState("");
   const onhandleSendMessege = (e) => {
@@ -63,7 +64,43 @@ function App() {
     setMessege("");
   };
 
-  console.log(chatHistory);
+  // ..................................................................... Restricted ...........................................//
+
+  const [file, setFile] = useState(null);
+  const [question, setQuestion] = useState("");
+  const [response, setResponse] = useState("");
+  const [error, setError] = useState("");
+  const [uploaded, setUploaded] = useState(false);
+
+  const handleFilesChange = async (event) => {
+    setFile(event.target.files[0]);
+  };
+
+  const handleQuestionChange = (event) => {
+    setQuestion(event.target.value);
+  };
+
+  const handleChatSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("question", question);
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/generate-response",
+        formData
+      );
+
+      const data = response.data;
+      if (data.success) {
+        setResponse(data.assistantResponse);
+      } else {
+        console.error("Error generating response:", data.error);
+      }
+    } catch (error) {
+      console.error("Error generating response:", error);
+    }
+  };
 
   return (
     <>
@@ -93,7 +130,7 @@ function App() {
               type="file"
               style={{ display: "none" }}
               ref={fileInputRef}
-              onChange={handleFileChange}
+              onChange={handleFilesChange}
             />
             <div
               onClick={handleButtonClick}
@@ -258,14 +295,14 @@ function App() {
                   </div>
                 </div>
               </div>
-              <form onSubmit={onhandleSendMessege}>
+              <form onSubmit={handleChatSubmit}>
                 <div className="flex flex-row items-center h-16 rounded-xl bg-white w-full px-4">
                   <div className="flex-grow">
                     <div className="relative w-full">
                       <input
                         type="text"
-                        value={messege}
-                        onChange={(e) => setMessege(e.target.value)}
+                        value={question}
+                        onChange={handleQuestionChange}
                         className="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10"
                       />
                     </div>
