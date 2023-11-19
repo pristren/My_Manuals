@@ -16,38 +16,51 @@ function App() {
     }
   };
 
-  const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0];
-    setUsedFiles([...usedFiles, selectedFile]);
-  };
-
   const handleCreateNewChat = () => {
-    // if (usedFiles?.length > 0) {
-    setChatHistory([
-      ...chatHistory,
-      {
+    if (usedFiles?.length > 0) {
+      setChatHistory([
+        ...chatHistory,
+        {
+          id: chatHistory?.length + 1,
+          messeges: [],
+        },
+      ]);
+      setSelectedChat({
         id: chatHistory?.length + 1,
         messeges: [],
-      },
-    ]);
-    setSelectedChat({
-      id: chatHistory?.length + 1,
-      messeges: [],
-    });
-    // } else {
-    //   alert("Please Select a file");
-    // }
+      });
+    } else {
+      alert("Please Select a file");
+    }
   };
-  const [messege, setMessege] = useState("");
-  const onhandleSendMessege = (e) => {
+
+  // ..................................................................... Restricted ...........................................//
+
+  const [file, setFile] = useState(null);
+  const [question, setQuestion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const handleFilesChange = async (event) => {
+    setFile(event.target.files[0]);
+    setUsedFiles([...usedFiles, event.target.files[0]]);
+  };
+
+  const handleQuestionChange = (event) => {
+    setQuestion(event.target.value);
+  };
+
+  const handleChatSubmit = async (e) => {
     e.preventDefault();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("question", question);
     const updateSelectedChat = {
       ...selectedChat,
       messeges: [
         ...selectedChat.messeges,
         {
-          user: messege,
+          user: question,
           chatbot: "",
+          loading: true,
         },
       ],
     };
@@ -61,39 +74,37 @@ function App() {
       }
     });
     setChatHistory(updatedChatHistory);
-    setMessege("");
-  };
-
-  // ..................................................................... Restricted ...........................................//
-
-  const [file, setFile] = useState(null);
-  const [question, setQuestion] = useState("");
-  const [response, setResponse] = useState("");
-  const [error, setError] = useState("");
-  const [uploaded, setUploaded] = useState(false);
-
-  const handleFilesChange = async (event) => {
-    setFile(event.target.files[0]);
-  };
-
-  const handleQuestionChange = (event) => {
-    setQuestion(event.target.value);
-  };
-
-  const handleChatSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("question", question);
+    setQuestion("");
     try {
       const response = await axios.post(
-        "http://localhost:5000/generate-response",
+        "http://localhost:5000/upload",
         formData
       );
-
       const data = response.data;
       if (data.success) {
-        setResponse(data.assistantResponse);
+        const updateSelectedChat = {
+          ...selectedChat,
+          messeges: [
+            ...selectedChat.messeges,
+            {
+              user: question,
+              chatbot: data.data,
+              loading: false,
+            },
+          ],
+        };
+        setSelectedChat(updateSelectedChat);
+
+        const updatedChatHistory = chatHistory.map((chat) => {
+          if (chat.id === selectedChat.id) {
+            return updateSelectedChat;
+          } else {
+            return chat;
+          }
+        });
+        setChatHistory(updatedChatHistory);
+        setQuestion("");
+        // setResponse(data.data);
       } else {
         console.error("Error generating response:", data.error);
       }
@@ -286,8 +297,12 @@ function App() {
                               </div>
                               <div className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl">
                                 <div>
-                                  {res?.chatbot ||
-                                    "Message will be genarated from the AI"}
+                                  {res?.loading
+                                    ? "..."
+                                    : res?.chatbot.replace(
+                                        /&#8203;``【oaicite:1】``&#8203;/g,
+                                        ""
+                                      )}
                                 </div>
                               </div>
                             </div>
