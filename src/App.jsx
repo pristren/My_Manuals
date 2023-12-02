@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 function App() {
   const [usedFiles, setUsedFiles] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
+  const [openAiId, setOpenAiId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedChat, setSelectedChat] = useState(
     chatHistory?.length > 0 && chatHistory[0]
   );
@@ -16,20 +18,44 @@ function App() {
     }
   };
 
-  const handleCreateNewChat = () => {
+  const handleCreateNewChat = async () => {
+    setIsLoading(true);
     if (usedFiles?.length > 0) {
-      setChatHistory([
-        ...chatHistory,
-        {
-          id: chatHistory?.length + 1,
-          messeges: [],
-        },
-      ]);
-      setSelectedChat({
-        id: chatHistory?.length + 1,
-        messeges: [],
-      });
+      const formData = new FormData();
+      for (let i = 0; i < file.length; i++) {
+        formData.append("files", file[i]);
+      }
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/v1/assistant/create",
+          formData
+        );
+        const data = response.data;
+        if (data) {
+          localStorage.setItem(
+            "openAiId",
+            JSON.stringify(data?.openaiFiles?.id)
+          );
+          setOpenAiId(data?.openaiFiles?.id);
+          setChatHistory([
+            ...chatHistory,
+            {
+              id: chatHistory?.length + 1,
+              messeges: [],
+            },
+          ]);
+          setSelectedChat({
+            id: chatHistory?.length + 1,
+            messeges: [],
+          });
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error generating response:", error);
+        setIsLoading(false);
+      }
     } else {
+      setIsLoading(false);
       alert("Please Select a file");
     }
   };
@@ -40,8 +66,13 @@ function App() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const handleFilesChange = async (event) => {
-    setFile(event.target.files[0]);
-    setUsedFiles([...usedFiles, event.target.files[0]]);
+    setFile([...event.target.files]);
+    const files = event.target.files;
+    const filesArray = Array.from(files).map((file) => ({
+      file,
+      name: file.name,
+    }));
+    setUsedFiles(filesArray);
   };
 
   const handleQuestionChange = (event) => {
@@ -50,9 +81,10 @@ function App() {
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
+    const chat_id = JSON.parse(localStorage.getItem("openAiId"));
     const formData = new FormData();
-    formData.append("file", file);
     formData.append("question", question);
+    formData.append("assistant_id", openAiId ? openAiId : chat_id);
     const updateSelectedChat = {
       ...selectedChat,
       messeges: [
@@ -77,7 +109,7 @@ function App() {
     setQuestion("");
     try {
       const response = await axios.post(
-        "http://localhost:5000/upload",
+        "http://localhost:5000/api/v1/assistant/create/chat",
         formData
       );
       const data = response.data;
@@ -115,6 +147,25 @@ function App() {
 
   return (
     <>
+      {isLoading && (
+        <div className="w-full h-full fixed top-0 left-0 bg-white opacity-75 z-50">
+          <div className="flex justify-center items-center mt-[50vh]">
+            <svg
+              fill="none"
+              className="w-20 h-20 animate-spin"
+              viewBox="0 0 32 32"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                clipRule="evenodd"
+                d="M15.165 8.53a.5.5 0 01-.404.58A7 7 0 1023 16a.5.5 0 011 0 8 8 0 11-9.416-7.874.5.5 0 01.58.404z"
+                fill="currentColor"
+                fillRule="evenodd"
+              />
+            </svg>
+          </div>
+        </div>
+      )}
       <div className="flex h-screen antialiased text-gray-800">
         <div className="flex flex-row h-full w-full overflow-x-hidden">
           <div className="flex flex-col py-8 pl-6 pr-2 w-64 bg-gray-100 flex-shrink-0">
@@ -141,6 +192,7 @@ function App() {
               type="file"
               style={{ display: "none" }}
               ref={fileInputRef}
+              multiple
               onChange={handleFilesChange}
             />
             <div
