@@ -19,39 +19,55 @@ function App() {
   };
 
   const handleCreateNewChat = async () => {
+    const chat_id = JSON.parse(localStorage.getItem("openAiId"));
     setIsLoading(true);
     if (usedFiles?.length > 0) {
-      const formData = new FormData();
-      for (let i = 0; i < file.length; i++) {
-        formData.append("files", file[i]);
-      }
-      try {
-        const response = await axios.post(
-          "http://localhost:5000/api/v1/assistant/create",
-          formData
-        );
-        const data = response.data;
-        if (data) {
-          localStorage.setItem(
-            "openAiId",
-            JSON.stringify(data?.openaiFiles?.id)
+      if (!openAiId || !chat_id) {
+        const formData = new FormData();
+        for (let i = 0; i < file.length; i++) {
+          formData.append("files", file[i]);
+        }
+        try {
+          const response = await axios.post(
+            "http://localhost:5000/api/v1/assistant/create",
+            formData
           );
-          setOpenAiId(data?.openaiFiles?.id);
-          setChatHistory([
-            ...chatHistory,
-            {
+          const data = response.data;
+          if (data) {
+            localStorage.setItem(
+              "openAiId",
+              JSON.stringify(data?.openaiFiles?.id)
+            );
+            setOpenAiId(data?.openaiFiles?.id);
+            setChatHistory([
+              ...chatHistory,
+              {
+                id: chatHistory?.length + 1,
+                messeges: [],
+              },
+            ]);
+            setSelectedChat({
               id: chatHistory?.length + 1,
               messeges: [],
-            },
-          ]);
-          setSelectedChat({
-            id: chatHistory?.length + 1,
-            messeges: [],
-          });
+            });
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error("Error generating response:", error);
           setIsLoading(false);
         }
-      } catch (error) {
-        console.error("Error generating response:", error);
+      } else {
+        setChatHistory([
+          ...chatHistory,
+          {
+            id: chatHistory?.length + 1,
+            messeges: [],
+          },
+        ]);
+        setSelectedChat({
+          id: chatHistory?.length + 1,
+          messeges: [],
+        });
         setIsLoading(false);
       }
     } else {
@@ -82,9 +98,10 @@ function App() {
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     const chat_id = JSON.parse(localStorage.getItem("openAiId"));
-    const formData = new FormData();
-    formData.append("question", question);
-    formData.append("assistant_id", openAiId ? openAiId : chat_id);
+    const reqdata = {
+      question: question,
+      assistant_id: openAiId ? openAiId : chat_id,
+    };
     const updateSelectedChat = {
       ...selectedChat,
       messeges: [
@@ -110,7 +127,7 @@ function App() {
     try {
       const response = await axios.post(
         "http://localhost:5000/api/v1/assistant/create/chat",
-        formData
+        reqdata
       );
       const data = response.data;
       if (data.success) {
@@ -347,16 +364,20 @@ function App() {
                               <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
                                 Bot
                               </div>
-                              <div className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl">
+                              {res?.loading ? (
                                 <div>
-                                  {res?.loading
-                                    ? "..."
-                                    : res?.chatbot.replace(
-                                        /&#8203;``【oaicite:1】``&#8203;/g,
-                                        ""
-                                      )}
+                                  <span className="loader"></span>
                                 </div>
-                              </div>
+                              ) : (
+                                <div className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl">
+                                  <div>
+                                    {res?.chatbot.replace(
+                                      /&#8203;``【oaicite:1】``&#8203;/g,
+                                      ""
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
