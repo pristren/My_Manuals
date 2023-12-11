@@ -81,6 +81,7 @@ function App() {
   const [file, setFile] = useState(null);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const handleFilesChange = async (event) => {
     setFile([...event.target.files]);
     const files = event.target.files;
@@ -96,6 +97,7 @@ function App() {
   };
 
   const handleChatSubmit = async (e) => {
+    setError("");
     e.preventDefault();
     const chat_id = JSON.parse(localStorage.getItem("openAiId"));
     const reqdata = {
@@ -129,6 +131,7 @@ function App() {
         "http://localhost:5000/api/v1/assistant/create/chat",
         reqdata
       );
+      console.log(response);
       const data = response.data;
       if (data.success) {
         const updateSelectedChat = {
@@ -153,12 +156,27 @@ function App() {
         });
         setChatHistory(updatedChatHistory);
         setQuestion("");
+        setError("");
         // setResponse(data.data);
       } else {
-        console.error("Error generating response:", data.error);
+        console.log("came");
+        const updateSelectedChat = {
+          ...selectedChat,
+          messeges: [
+            ...selectedChat.messeges,
+            {
+              user: question,
+              chatbot: data.error,
+              loading: false,
+            },
+          ],
+        };
+        setSelectedChat(updateSelectedChat);
+        console.log("Error generating response:", data.error);
       }
     } catch (error) {
-      console.error("Error generating response:", error);
+      setError("Something went wrong genarating the info!. Please try again");
+      console.log("Error generating response:", error);
     }
   };
 
@@ -340,49 +358,60 @@ function App() {
               <div className="flex flex-col h-full overflow-x-auto mb-4">
                 <div className="flex flex-col h-full">
                   <div className="grid grid-cols-12 gap-y-2">
-                    {selectedChat?.messeges?.map((res, i) => (
-                      <>
-                        {res?.user !== undefined && (
-                          <div
-                            key={i}
-                            className="col-start-6 col-end-13 p-3 rounded-lg"
-                          >
-                            <div className="flex items-center justify-start flex-row-reverse">
-                              <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
-                                Me
-                              </div>
-                              <div className="relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl">
-                                <div>{res?.user}</div>
+                    {selectedChat?.messeges?.map((res, i) => {
+                      console.log(res);
+                      return (
+                        <>
+                          {res?.user !== undefined && (
+                            <div
+                              key={i}
+                              className="col-start-6 col-end-13 p-3 rounded-lg"
+                            >
+                              <div className="flex items-center justify-start flex-row-reverse">
+                                <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
+                                  Me
+                                </div>
+                                <div className="relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl">
+                                  <div>{res?.user}</div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {res?.chatbot !== undefined && (
-                          <div className="col-start-1 col-end-8 p-3 rounded-lg">
-                            <div className="flex flex-row items-center">
-                              <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
-                                Bot
-                              </div>
-                              {res?.loading ? (
-                                <div>
-                                  <span className="loader"></span>
+                          {res?.chatbot !== undefined && (
+                            <div className="col-start-1 col-end-8 p-3 rounded-lg">
+                              <div className="flex flex-row items-center">
+                                <div className="flex items-center text-white justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
+                                  Bot
                                 </div>
-                              ) : (
-                                <div className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl">
+                                {res?.loading ? (
                                   <div>
-                                    {res?.chatbot.replace(
-                                      /&#8203;``【oaicite:1】``&#8203;/g,
-                                      ""
-                                    )}
+                                    <span className="loader"></span>
                                   </div>
-                                </div>
-                              )}
+                                ) : (
+                                  // res?.loading === false &&
+                                  //   (res.chatbot === "" ||
+                                  //     res.chatbot === undefined) ? (
+                                  //   <div className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl">
+                                  //     <div>{res?.error}</div>
+                                  //   </div>
+                                  // ) :
+
+                                  <div className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl">
+                                    <div>
+                                      {res?.chatbot.replace(
+                                        /&#8203;``【oaicite:1】``&#8203;/g,
+                                        ""
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </>
-                    ))}
+                          )}
+                        </>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
