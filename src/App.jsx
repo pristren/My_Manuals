@@ -15,8 +15,7 @@ function App() {
   };
 
   const openai = new OpenAI({
-    apiKey: `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`,
-    // apiKey: `${import.meta.env.OPENAI_API_KEY}`,
+    apiKey: `${import.meta.env.VITE_OPENAI_API_KEY}`,
     dangerouslyAllowBrowser: true,
   });
 
@@ -66,8 +65,27 @@ function App() {
     // Polling mechanism to see if runStatus is completed
     // This should be made more robust.
     while (runStatus.status !== "completed") {
+      if (runStatus.status === "failed") {
+        break;
+      }
       await new Promise((resolve) => setTimeout(resolve, 2000));
       runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    }
+
+    if (runStatus.status === "failed") {
+      //   console.log(runStatus);
+      const updateSelectedChat = {
+        ...selectedChat,
+        messeges: [
+          ...selectedChat.messeges,
+          {
+            user: question,
+            chatbot: runStatus?.last_error?.code,
+            loading: false,
+          },
+        ],
+      };
+      setSelectedChat(updateSelectedChat);
     }
 
     // Get the last assistant message from the messages array
@@ -85,7 +103,7 @@ function App() {
         ...selectedChat.messeges,
         {
           user: question,
-          chatbot: lastMessageForRun.content[0].text.value,
+          chatbot: lastMessageForRun?.content[0]?.text?.value,
           loading: false,
         },
       ],
@@ -115,8 +133,8 @@ function App() {
         </div>
       )} */}
       <div className="flex h-screen antialiased text-gray-800">
-        <div className="flex flex-row h-full w-full overflow-x-hidden">
-          <div className="flex flex-col py-8 pl-6 pr-2 w-64 bg-white flex-shrink-0">
+        <div className="flex flex-col md:flex-row h-full w-full overflow-x-hidden">
+          <div className="flex flex-col py-8 pl-6 pr-2 w-full md:w-64 bg-white flex-shrink-0">
             <div className="flex flex-row items-center justify-center h-12 w-full">
               <div className="font-bold text-xl border-2 px-7 py-1 rounded">
                 All Assistants
@@ -124,7 +142,7 @@ function App() {
             </div>
             <div className="flex flex-col mt-8">
               <div className="flex flex-row items-center justify-between text-xs">
-                <span className="font-bold">History</span>
+                <span className="font-bold">Assistants</span>
                 <span className="flex items-center justify-center bg-gray-300 h-4 w-4 rounded-full">
                   {myAssistants?.length}
                 </span>
